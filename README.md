@@ -21,3 +21,7 @@ Every RFQ is wrapped in a Cryptex envelope (`$meta.artifact_id`, `security_conte
 
 Open **Pipeline** on copper: classification is `restricted`, dispatch is `dispatch_to_model → agent-gpt-4o-secure`. Decision Engine is still PreFlect — the wire never compiles.
 
+
+     extract(docx_path, out_dir, skip_arch)
+
+https://github.com/hinojosagilly49-debug/polymath-1-spec/blob/main/extract_polymath.py
