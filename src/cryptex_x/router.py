@@ -40,16 +40,31 @@ class IntentRouter:
                     allowed=False,
                     reason="kem_analysis requires restricted security_context",
                 )
-            # Crypto agility fields must be present before secure dispatch.
+            # Crypto agility fields must all be present before secure dispatch.
             crypto = envelope.security_context.crypto
-            if not crypto.alg_id or not crypto.key_id:
+            required_crypto_fields = (
+                "alg_id",
+                "kem_id",
+                "sig_id",
+                "key_id",
+            )
+            missing = [
+                field_name
+                for field_name in required_crypto_fields
+                if not getattr(crypto, field_name)
+            ]
+            if missing:
                 return DispatchDecision(
                     intent=intent,
                     engine=engine,
                     classification=classification,
                     dispatch="blocked",
                     allowed=False,
-                    reason="security_context.crypto alg_id/key_id required",
+                    reason=(
+                        "security_context.crypto "
+                        + "/".join(missing)
+                        + " required"
+                    ),
                 )
             return DispatchDecision(
                 intent=intent,

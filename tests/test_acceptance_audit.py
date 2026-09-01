@@ -108,6 +108,25 @@ def test_a5_kem_analysis_rejects_non_restricted():
     assert decision.allowed is False
 
 
+def test_a5_kem_analysis_rejects_missing_crypto_agility_fields():
+    env = CryptexEnvelope.wrap(
+        intent="kem_analysis",
+        instrument="NMC 811 / Cu cathode",
+        security_context=SecurityContext(
+            classification="restricted",
+            crypto=CryptoContext(
+                alg_id="classical-2026",
+                kem_id="",
+                sig_id="ed25519",
+                key_id="desk-key-2026q3",
+            ),
+        ),
+    )
+    decision = IntentRouter().dispatch(env)
+    assert decision.allowed is False
+    assert "kem_id" in decision.reason
+
+
 def test_a6_preflect_hold_missing_incoterms():
     env = CryptexEnvelope.wrap(
         intent="kem_analysis",
