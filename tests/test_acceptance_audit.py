@@ -66,6 +66,7 @@ def test_a2_a3_a4_quarantine_substitute_immutable():
         price_print_usd_mt=origin_price,
         price_print_ts=print_ts,
         origin_source_hash=origin_hash,
+        instrument="Al 3105",
         now=now,
     )
 
@@ -78,6 +79,25 @@ def test_a2_a3_a4_quarantine_substitute_immutable():
     # Downstream-only: applying again must not mutate prior origin fields
     assert view.hop["mode"] == "downstream_only"
     assert view.hop["origin_immutable"] is True
+
+
+def test_quarantine_without_configured_buffer_keeps_origin_price():
+    connector = Connector395()
+    now = datetime(2026, 9, 1, 11, 0, tzinfo=timezone.utc)
+    print_ts = datetime(2026, 9, 1, 10, 0, tzinfo=timezone.utc)
+
+    view = connector.apply(
+        instrument="Cu cathode",
+        price_print_usd_mt=2412.0,
+        price_print_ts=print_ts,
+        origin_source_hash="cu-cathode-print-2412",
+        now=now,
+    )
+
+    assert view.quarantined is True
+    assert view.agent_price_usd_mt == 2412.0
+    assert view.hop["substitution_permitted"] is False
+    assert view.hop["governed_buffer_usd_mt"] is None
 
 
 def test_a5_kem_analysis_restricted_route():

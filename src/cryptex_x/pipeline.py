@@ -83,6 +83,7 @@ class Pipeline:
                 price_print_usd_mt=envelope.price_print_usd_mt,
                 price_print_ts=envelope.price_print_ts,
                 origin_source_hash=envelope.origin_source_hash,
+                instrument=envelope.instrument,
                 now=now,
             )
             hops.append(price_view.hop)
