@@ -127,6 +127,18 @@ def test_a5_kem_analysis_rejects_missing_crypto_agility_fields():
     assert "kem_id" in decision.reason
 
 
+def test_missing_price_timestamp_is_not_within_window():
+    connector = Connector395()
+    view = connector.apply(
+        price_print_usd_mt=1500.0,
+        price_print_ts=None,
+        origin_source_hash="hash-with-no-ts",
+        now=datetime(2026, 9, 1, 11, 0, tzinfo=timezone.utc),
+    )
+    assert view.quarantined is True
+    assert view.within_desk_window is False
+
+
 def test_a6_preflect_hold_missing_incoterms():
     env = CryptexEnvelope.wrap(
         intent="kem_analysis",

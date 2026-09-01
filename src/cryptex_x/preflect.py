@@ -32,14 +32,20 @@ class PreFlectGuardrail:
     def evaluate(self, envelope: CryptexEnvelope) -> HoldDecision:
         missing: list[str] = []
         reasons: list[str] = []
+        reason_by_field = {
+            "incoterms": "HOLD_MISSING_INCOTERMS",
+            "payment_escrow": "HOLD_MISSING_PAYMENT_ESCROW",
+        }
 
-        if not envelope.incoterms:
-            missing.append("incoterms")
-            reasons.append("HOLD_MISSING_INCOTERMS")
-
-        if envelope.payment_escrow is not True:
-            missing.append("payment_escrow")
-            reasons.append("HOLD_MISSING_PAYMENT_ESCROW")
+        for field_name in self.REQUIRED_FOR_EXECUTE:
+            value = getattr(envelope, field_name)
+            if field_name == "payment_escrow":
+                missing_value = value is not True
+            else:
+                missing_value = not value
+            if missing_value:
+                missing.append(field_name)
+                reasons.append(reason_by_field[field_name])
 
         if missing:
             return HoldDecision(

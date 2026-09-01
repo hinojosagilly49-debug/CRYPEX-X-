@@ -11,7 +11,7 @@ GOVERNED_BUFFER_USD_MT = 2286.0
 DESK_WINDOW = timedelta(minutes=30)
 
 
-def _parse_ts(ts: str | datetime | None, now: datetime) -> datetime | None:
+def _parse_ts(ts: str | datetime | None, _now: datetime) -> datetime | None:
     if ts is None:
         return None
     if isinstance(ts, datetime):
@@ -76,9 +76,7 @@ class Connector395:
             now = now.replace(tzinfo=timezone.utc)
 
         print_ts = _parse_ts(price_print_ts, now)
-        within_window = True
-        if print_ts is not None:
-            within_window = (now - print_ts) <= self.desk_window
+        within_window = print_ts is not None and (now - print_ts) <= self.desk_window
 
         # Explicit stale mark or anything outside the desk window is quarantined.
         marked_stale = price_print_usd_mt in self.stale_marks_usd_mt
