@@ -32,6 +32,7 @@ Every RFQ is a Cryptex envelope (`$meta.artifact_id`, versioned `security_contex
 |------|---------|
 | [docs/gtm/](docs/gtm/) | One-pager, pilot SOW, runbook, demo script, security questionnaire, SKUs |
 | [docs/security/](docs/security/) | Crypto agility + threat model (PQC secondary) |
+| [docs/copilot-surfaces.md](docs/copilot-surfaces.md) | Assistive vs agentic Copilot features on this repo |
 | [schemas/](schemas/) | `security_context` + Cryptex envelope JSON Schemas |
 | [src/cryptex_x/](src/cryptex_x/) | Envelope, router, 395-connector, PreFlect, pipeline |
 | [tests/test_acceptance_audit.py](tests/test_acceptance_audit.py) | Hop-log acceptance criteria A1–A8 |
