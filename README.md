@@ -33,6 +33,9 @@ Every RFQ is a Cryptex envelope (`$meta.artifact_id`, versioned `security_contex
 | [docs/gtm/](docs/gtm/) | One-pager, pilot SOW, runbook, demo script, security questionnaire, SKUs |
 | [docs/security/](docs/security/) | Crypto agility + threat model (PQC secondary) |
 | [docs/copilot-surfaces.md](docs/copilot-surfaces.md) | Assistive vs agentic Copilot features on this repo |
+| [docs/brand.md](docs/brand.md) | Meridian OG card, favicon, brand-check |
+| [public/](public/) | `og.jpg` (1200×630), `favicon.svg` |
+| [src/lib/og/site.json](src/lib/og/site.json) | Share card meta (`title: Meridian`, `card: custom`) |
 | [schemas/](schemas/) | `security_context` + Cryptex envelope JSON Schemas |
 | [src/cryptex_x/](src/cryptex_x/) | Envelope, router, 395-connector, PreFlect, pipeline |
 | [tests/test_acceptance_audit.py](tests/test_acceptance_audit.py) | Hop-log acceptance criteria A1–A8 |
