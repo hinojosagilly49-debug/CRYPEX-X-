@@ -1,0 +1,74 @@
+{
+  "master_record_version": "2026-audit-1",
+  "cases": [
+    {
+      "id": "A1-A4-al-3105-stale",
+      "description": "395-connector quarantines stale $2412/mt and substitutes $2286/mt",
+      "rfq": {
+        "intent": "enterprise_sync",
+        "instrument": "Al 3105",
+        "price_print_usd_mt": 2412.0,
+        "price_print_ts": "2026-09-01T10:00:00+00:00",
+        "origin_source_hash": "lme-al3105-print-2412-immutable",
+        "incoterms": null,
+        "payment_escrow": null
+      },
+      "now": "2026-09-01T11:00:00+00:00",
+      "expect": {
+        "engine": "395-connector",
+        "quarantined": true,
+        "agent_price_usd_mt": 2286.0,
+        "origin_price_usd_mt": 2412.0,
+        "origin_immutable": true,
+        "within_desk_window": false
+      }
+    },
+    {
+      "id": "A5-nmc-kem-restricted",
+      "description": "kem_analysis restricted → agent-gpt-4o-secure",
+      "rfq": {
+        "intent": "kem_analysis",
+        "instrument": "NMC 811 / Cu cathode",
+        "classification": "restricted",
+        "incoterms": "CIF",
+        "payment_escrow": true
+      },
+      "expect": {
+        "engine": "agent-gpt-4o-secure",
+        "classification": "restricted",
+        "dispatch_contains": "agent-gpt-4o-secure",
+        "allowed": true
+      }
+    },
+    {
+      "id": "A6-A7-preflect-holds",
+      "description": "PreFlect holds when Incoterms or escrow missing",
+      "rfq": {
+        "intent": "kem_analysis",
+        "instrument": "Cu cathode",
+        "classification": "restricted",
+        "incoterms": null,
+        "payment_escrow": false
+      },
+      "expect": {
+        "action": "hold",
+        "missing_constraints": ["incoterms", "payment_escrow"],
+        "silent_execute_prevented": true
+      }
+    },
+    {
+      "id": "A8-freight-local",
+      "description": "SHA–RTM freight stays on local Llama path",
+      "rfq": {
+        "intent": "local",
+        "instrument": "SHA-RTM freight",
+        "incoterms": "FOB",
+        "payment_escrow": true
+      },
+      "expect": {
+        "engine": "llama-3-8b-instruct",
+        "dispatch_contains": "llama-3-8b-instruct"
+      }
+    }
+  ]
+}
