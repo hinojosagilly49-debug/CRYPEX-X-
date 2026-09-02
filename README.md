@@ -33,12 +33,16 @@ Every RFQ is a Cryptex envelope (`$meta.artifact_id`, versioned `security_contex
 | [docs/gtm/](docs/gtm/) | One-pager, pilot SOW, runbook, demo script, security questionnaire, SKUs |
 | [docs/security/](docs/security/) | Crypto agility + threat model (PQC secondary) |
 | [docs/copilot-surfaces.md](docs/copilot-surfaces.md) | Assistive vs agentic Copilot features on this repo |
+| [docs/architecture/federated-peg.md](docs/architecture/federated-peg.md) | **Shipped** federated peg (blocksigner ≠ watchman) |
+| [docs/architecture/spv-peg.md](docs/architecture/spv-peg.md) | SPV peg as a **second** diagram (not blended) |
 | [docs/brand.md](docs/brand.md) | Meridian OG card, favicon, brand-check |
 | [public/](public/) | `og.jpg` (1200×630), `favicon.svg` |
 | [src/lib/og/site.json](src/lib/og/site.json) | Share card meta (`title: Meridian`, `card: custom`) |
 | [schemas/](schemas/) | `security_context` + Cryptex envelope JSON Schemas |
 | [src/cryptex_x/](src/cryptex_x/) | Envelope, router, 395-connector, PreFlect, pipeline |
+| [src/cryptex_x/peg/](src/cryptex_x/peg/) | Federated peg model (roles, peg-in/out invariants) |
 | [tests/test_acceptance_audit.py](tests/test_acceptance_audit.py) | Hop-log acceptance criteria A1–A8 |
+| [tests/test_federated_peg.py](tests/test_federated_peg.py) | Federated peg three rules + flows |
 
 ## Quick start
 
@@ -61,3 +65,14 @@ pytest -q
 ## Crypto agility (PQC-ready fields)
 
 `security_context.crypto` carries `policy_version`, `alg_id`, `kem_id`, `sig_id`, `key_id`, `hybrid`. Hybrid PQC is scheduled only after pilot DPA retention/HNDL terms — see [docs/security/crypto-agility.md](docs/security/crypto-agility.md).
+
+## Federated peg (architecture)
+
+**Federated peg first** — the model that shipped. SPV stays a second diagram.
+
+- [Federated peg](docs/architecture/federated-peg.md) — blocksigner (sidechain) vs watchman (Bitcoin k-of-n); peg-in Merkle on sidechain; peg-out multisig on Bitcoin
+- [SPV peg](docs/architecture/spv-peg.md) — compact proofs both ways; shows the missing Bitcoin script change
+
+```bash
+pytest tests/test_federated_peg.py -q
+```

@@ -1,4 +1,4 @@
-"""CRYPEX-X- metals desk: envelope routing, 395-connector, PreFlect holds."""
+"""CRYPEX-X-: metals desk pipeline + federated peg architecture model."""
 
 from .connector_395 import Connector395, DeskPriceView
 from .envelope import CryptexEnvelope, SecurityContext, default_security_context
