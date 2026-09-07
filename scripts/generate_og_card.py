@@ -136,7 +136,7 @@ def main() -> None:
     d.text((sx, sy), sub, font=sub_f, fill=STEEL)
     d.text(
         (90, H - 70),
-        "CRYPEX ENVELOPE  ·  SARC-DQ  ·  Preflect HOLD",
+        "CRYPEX ENVELOPE  ·  SARC-DQ  ·  PreFlect HOLD",
         font=meta_f,
         fill=ACCENT,
     )

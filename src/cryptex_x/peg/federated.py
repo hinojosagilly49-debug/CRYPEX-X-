@@ -147,6 +147,8 @@ class FederatedPeg:
     def record_deposit(self, deposit: PegInDeposit) -> None:
         if deposit.amount_sats <= 0:
             raise ValueError("deposit amount must be positive")
+        if deposit.txid in self._deposits:
+            raise ValueError("deposit already recorded")
         self._deposits[deposit.txid] = deposit
         # Coins sit in reserve regardless of tweak reveal
         self.reserve_sats += deposit.amount_sats
@@ -242,6 +244,17 @@ class FederatedPeg:
         Watchmen verify burn + policy and k-of-n sign Bitcoin reserve spend.
         Bitcoin checks multisig only — not a sidechain header chain.
         """
+        if request.burn_txid in self._seen_burns:
+            return PegOutRelease(
+                burn_txid=request.burn_txid,
+                amount_sats=request.amount_sats,
+                btc_destination=request.btc_destination,
+                watchmen_signatures=tuple(watchmen_signature_ids),
+                released=False,
+                reason="burn_already_processed",
+                bitcoin_verified_sidechain_header=False,
+            )
+
         sigs = tuple(watchmen_signature_ids)
         valid_ids = {w.member_id for w in self.watchmen}
         if any(s not in valid_ids for s in sigs):

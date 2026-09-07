@@ -107,6 +107,21 @@ def test_pegin_requires_confirmations_and_merkle_proof():
     assert bad_proof.reason == "invalid_merkle_proof"
 
 
+def test_record_deposit_rejects_duplicate_txid():
+    peg = FederatedPeg.liquid_like(n=3, k=2)
+    deposit = PegInDeposit(
+        txid="btc-dup-1",
+        amount_sats=50_000,
+        tweaked_script="twk",
+        sidechain_claim_address="lq1",
+        bitcoin_confirmations=100,
+    )
+    peg.record_deposit(deposit)
+    with pytest.raises(ValueError, match="deposit already recorded"):
+        peg.record_deposit(deposit)
+    assert peg.reserve_sats == 50_000
+
+
 def test_pegout_k_of_n_watchmen_bitcoin_never_checks_sidechain_header():
     peg = FederatedPeg.liquid_like(n=5, k=3)
     peg.record_deposit(
@@ -143,6 +158,25 @@ def test_pegout_k_of_n_watchmen_bitcoin_never_checks_sidechain_header():
     assert ok.bitcoin_verified_sidechain_header is False
     assert peg.reserve_sats == 50_000
     assert peg.sidechain_lbtc_sats == 50_000
+
+
+def test_release_pegout_rejects_already_processed_burn():
+    peg = FederatedPeg.liquid_like(n=3, k=2)
+    peg.reserve_sats = 10_000
+    peg.sidechain_lbtc_sats = 10_000
+    req = PegOutRequest(
+        burn_txid="sc-burn-dup",
+        amount_sats=1_000,
+        btc_destination="bc1q-x",
+        blocksigner_quorum_included_burn=True,
+    )
+    first = peg.release_pegout(req, watchmen_signature_ids=["fn-0", "fn-1"])
+    assert first.released is True
+    second = peg.release_pegout(req, watchmen_signature_ids=["fn-0", "fn-1"])
+    assert second.released is False
+    assert second.reason == "burn_already_processed"
+    assert peg.reserve_sats == 9_000
+    assert peg.sidechain_lbtc_sats == 9_000
 
 
 def test_pegout_requires_blocksigner_burn_inclusion():
