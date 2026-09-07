@@ -5,6 +5,12 @@ from .envelope import CryptexEnvelope, SecurityContext, default_security_context
 from .pipeline import Pipeline, PipelineResult
 from .preflect import PreFlectGuardrail, HoldDecision
 from .router import IntentRouter, DispatchDecision
+from .sigma7 import (
+    Phase1BaselineRunner,
+    Phase1BaselineSpec,
+    Sigma7EvaluationHarness,
+    default_phase1_spec,
+)
 
 __all__ = [
     "Connector395",
@@ -16,7 +22,11 @@ __all__ = [
     "Pipeline",
     "PipelineResult",
     "PreFlectGuardrail",
+    "Phase1BaselineRunner",
+    "Phase1BaselineSpec",
     "SecurityContext",
+    "Sigma7EvaluationHarness",
+    "default_phase1_spec",
     "default_security_context",
 ]
 
