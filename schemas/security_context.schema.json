@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cryptex-x.local/schemas/security_context.schema.json",
+  "title": "Cryptex security_context",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["classification", "crypto"],
+  "properties": {
+    "classification": {
+      "type": "string",
+      "enum": ["public", "internal", "restricted"]
+    },
+    "crypto": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policy_version",
+        "alg_id",
+        "kem_id",
+        "sig_id",
+        "key_id",
+        "hybrid"
+      ],
+      "properties": {
+        "policy_version": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Crypto policy generation; bump on suite changes."
+        },
+        "alg_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Suite identifier, e.g. classical-2026 or hybrid-mlkem-mldsa."
+        },
+        "kem_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Envelope transport KEM id (classical or hybrid)."
+        },
+        "sig_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Artifact signature algorithm id."
+        },
+        "key_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Rotatable key handle."
+        },
+        "hybrid": {
+          "type": "boolean",
+          "description": "True when hybrid PQC is enabled for this envelope."
+        },
+        "classical_fallback": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    }
+  }
+}
