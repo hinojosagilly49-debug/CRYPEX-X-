@@ -44,6 +44,8 @@ PHASE1_REQUIRED_KEYS = (
 class Phase2SimulatedMetrics:
     decode_tokens_per_sec: float = 52.0
     ttft_seconds: float = 0.44
+    mmlu_accuracy: float = 0.331
+    arc_stub_correct: tuple[bool, bool, bool] = (True, True, False)
 
 
 class Phase2AblationRunner:
@@ -84,15 +86,31 @@ class Phase2AblationRunner:
         if ttft_baseline is not None:
             ttft_change = (simulated.ttft_seconds - ttft_baseline) / ttft_baseline
 
-        phase2_go = decode_gate_passed
+        mmlu_baseline = self.harness.baselines["mmlu_accuracy"]
+        mmlu_drop = self._relative_drop(mmlu_baseline, simulated.mmlu_accuracy)
+        mmlu_passed = mmlu_drop < 0.01
+
+        arc_rows = tuple(
+            {"sample_index": idx, "correct": hit}
+            for idx, hit in enumerate(simulated.arc_stub_correct)
+        )
+        arc_accuracy = sum(1 for row in arc_rows if row["correct"]) / len(arc_rows)
+        arc_baseline = self.harness.baselines.get("arc_challenge_accuracy")
+        arc_drop = self._relative_drop(arc_baseline, arc_accuracy) if arc_baseline is not None else None
+        arc_pending = arc_baseline is None
+        arc_passed = True if arc_pending else arc_drop < 0.01
+
+        intelligence_gate_passed = mmlu_passed and arc_passed
+        phase2_go = decode_gate_passed and intelligence_gate_passed
         payload = {
             "phase": 2,
             "status": "GO" if phase2_go else "NO-GO",
             "phase2_go": phase2_go,
-            "gate_reason": (
-                "Decode improvement exceeded +30% baseline threshold."
-                if phase2_go
-                else "Decode improvement did not exceed +30% baseline threshold."
+            "gate_reason": self._gate_reason(
+                decode_gate_passed=decode_gate_passed,
+                mmlu_passed=mmlu_passed,
+                arc_passed=arc_passed,
+                arc_pending=arc_pending,
             ),
             "hybrid_config": self.config.to_dict(),
             "efficiency_proxy_registered": proxy_registered,
@@ -107,6 +125,23 @@ class Phase2AblationRunner:
                 "new_value": simulated.ttft_seconds,
                 "relative_change": ttft_change,
             },
+            "intelligence": {
+                "degradation_limit": 0.01,
+                "mmlu": {
+                "baseline": mmlu_baseline,
+                "new_value": simulated.mmlu_accuracy,
+                "relative_drop": mmlu_drop,
+                "passed_gate": mmlu_passed,
+                },
+                "arc": {
+                "baseline": arc_baseline,
+                "new_value": arc_accuracy,
+                "relative_drop": arc_drop,
+                "passed_gate": arc_passed,
+                "arc_pending": arc_pending,
+                "stub_samples": arc_rows,
+                },
+            },
         }
         self._write_report(output_path, payload)
         return payload
@@ -115,3 +150,30 @@ class Phase2AblationRunner:
         path = Path(output_path)
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+
+    @staticmethod
+    def _relative_drop(baseline: float, new_value: float) -> float:
+        if baseline <= 0:
+            return 0.0 if new_value >= baseline else 1.0
+        return max(0.0, (baseline - new_value) / baseline)
+
+    @staticmethod
+    def _gate_reason(
+        *,
+        decode_gate_passed: bool,
+        mmlu_passed: bool,
+        arc_passed: bool,
+        arc_pending: bool,
+    ) -> str:
+        reasons: list[str] = []
+        if not decode_gate_passed:
+            reasons.append("Decode improvement did not exceed +30% baseline threshold.")
+        if not mmlu_passed:
+            reasons.append("MMLU drop must be <1% vs baseline.")
+        if not arc_passed:
+            reasons.append("ARC drop must be <1% vs baseline.")
+        if reasons:
+            return " ".join(reasons)
+        if arc_pending:
+            return "Decode and MMLU gates passed; ARC baseline pending."
+        return "Decode and intelligence drop gates passed."

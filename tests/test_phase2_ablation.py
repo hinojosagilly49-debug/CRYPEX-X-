@@ -58,8 +58,65 @@ def test_phase2_decode_gain_must_exceed_thirty_percent(tmp_path: Path):
     assert no_go["decode"]["passed_gate"] is False
 
     go = phase2.run(
-        metrics=Phase2SimulatedMetrics(decode_tokens_per_sec=53.0, ttft_seconds=0.45),
+        metrics=Phase2SimulatedMetrics(
+            decode_tokens_per_sec=53.0,
+            ttft_seconds=0.45,
+            mmlu_accuracy=0.331,
+        ),
         output_path=tmp_path / "phase2_go.json",
     )
     assert go["status"] == "GO"
     assert go["decode"]["passed_gate"] is True
+
+
+def test_phase2_requires_mmlu_drop_strictly_below_one_percent(tmp_path: Path):
+    harness = _harness_with_phase1_locked(tmp_path)
+    harness.register_baseline("inference", "decode_tokens_per_sec", 40.0)
+    harness.register_baseline("inference", "ttft_seconds", 0.46)
+    phase2 = Phase2AblationRunner(harness=harness)
+    mmlu_baseline = harness.baselines["mmlu_accuracy"]
+
+    report = phase2.run(
+        metrics=Phase2SimulatedMetrics(
+            decode_tokens_per_sec=53.0,
+            ttft_seconds=0.45,
+            mmlu_accuracy=mmlu_baseline * 0.99,
+        ),
+        output_path=tmp_path / "phase2_mmlu_bound.json",
+    )
+    assert report["status"] == "NO-GO"
+    assert report["intelligence"]["mmlu"]["passed_gate"] is False
+    assert "MMLU drop must be <1%" in report["gate_reason"]
+
+
+def test_phase2_sets_arc_pending_when_arc_baseline_missing(tmp_path: Path):
+    harness = _harness_with_phase1_locked(tmp_path)
+    phase2 = Phase2AblationRunner(harness=harness)
+
+    report = phase2.run(output_path=tmp_path / "phase2_arc_pending.json")
+    assert report["status"] == "GO"
+    assert report["intelligence"]["arc"]["arc_pending"] is True
+    assert report["intelligence"]["arc"]["passed_gate"] is True
+    assert len(report["intelligence"]["arc"]["stub_samples"]) == 3
+
+
+def test_phase2_checks_arc_drop_when_arc_baseline_is_locked(tmp_path: Path):
+    harness = _harness_with_phase1_locked(tmp_path)
+    harness.register_baseline("arc_challenge", "accuracy", 2 / 3)
+    phase2 = Phase2AblationRunner(harness=harness)
+
+    go = phase2.run(
+        metrics=Phase2SimulatedMetrics(arc_stub_correct=(True, True, False)),
+        output_path=tmp_path / "phase2_arc_go.json",
+    )
+    assert go["status"] == "GO"
+    assert go["intelligence"]["arc"]["arc_pending"] is False
+    assert go["intelligence"]["arc"]["passed_gate"] is True
+
+    no_go = phase2.run(
+        metrics=Phase2SimulatedMetrics(arc_stub_correct=(True, False, False)),
+        output_path=tmp_path / "phase2_arc_nogo.json",
+    )
+    assert no_go["status"] == "NO-GO"
+    assert no_go["intelligence"]["arc"]["passed_gate"] is False
+    assert "ARC drop must be <1%" in no_go["gate_reason"]
