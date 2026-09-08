@@ -99,6 +99,33 @@ def test_deterministic_predict_threshold_rules():
     )
 
 
+def test_report_contains_nine_official_raw_trace_prompts(tmp_path: Path):
+    spec = default_phase1_spec()
+    runner = Phase1BaselineRunner(
+        spec=spec,
+        harness=Sigma7EvaluationHarness(),
+        seed=7,
+    )
+    report = runner.run_and_lock(report_path=tmp_path / "phase1_raw.json")
+    benchmarks = {item["name"]: item for item in report["benchmarks"]}
+
+    expected_prompts = {
+        bench: list(prompts) for bench, prompts in spec.eval_prompts.items()
+    }
+
+    total_rows = 0
+    required_keys = {"sample_index", "prompt", "expected", "prediction", "exact_match"}
+    for bench, prompts in expected_prompts.items():
+        rows = benchmarks[bench]["raw_outputs"]
+        assert [row["prompt"] for row in rows] == prompts
+        for idx, row in enumerate(rows):
+            assert set(row.keys()) == required_keys
+            assert row["sample_index"] == idx
+        total_rows += len(rows)
+
+    assert total_rows == 9
+
+
 def test_phase1_runner_blocks_phase2_when_lock_fails(tmp_path: Path):
     harness = Sigma7EvaluationHarness()
     harness.register_baseline("mmlu", "accuracy", 0.99)
