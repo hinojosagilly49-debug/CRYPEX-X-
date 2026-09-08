@@ -126,6 +126,21 @@ def test_report_contains_nine_official_raw_trace_prompts(tmp_path: Path):
     assert total_rows == 9
 
 
+def test_phase1_go_depends_on_lock_not_target_hits(tmp_path: Path):
+    runner = Phase1BaselineRunner(
+        spec=default_phase1_spec(),
+        harness=Sigma7EvaluationHarness(),
+        seed=7,
+    )
+    report = runner.run_and_lock(report_path=tmp_path / "phase1_go_vs_targets.json")
+    by_name = {item["name"]: item for item in report["benchmarks"]}
+
+    assert report["phase1_go"] is True
+    assert by_name["mmlu"]["passed_target"] is False
+    assert by_name["gsm8k"]["passed_target"] is True
+    assert by_name["ruler"]["passed_target"] is False
+
+
 def test_phase1_runner_blocks_phase2_when_lock_fails(tmp_path: Path):
     harness = Sigma7EvaluationHarness()
     harness.register_baseline("mmlu", "accuracy", 0.99)
