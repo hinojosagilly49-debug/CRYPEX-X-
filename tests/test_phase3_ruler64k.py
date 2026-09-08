@@ -44,6 +44,7 @@ def test_phase3_strict_threshold_and_no_baseline_rewrite(tmp_path: Path):
     assert no_go["phase3_go"] is False
     assert no_go["ruler"]["miss_rate_fraction"] == 1 / 3
     assert no_go["ruler"]["passed_gate"] is False
+    assert no_go["ruler"]["verbatim_misses"] == ["CHARLIE-3145"]
     assert no_go["gate_reason"] == "RULER miss rate must be < 0.001 (fraction)."
     assert harness.baselines["ruler_miss_rate"] == locked_before
 
@@ -54,6 +55,7 @@ def test_phase3_strict_threshold_and_no_baseline_rewrite(tmp_path: Path):
     assert go["status"] == "GO"
     assert go["ruler"]["miss_rate_fraction"] == 0.0
     assert go["ruler"]["passed_gate"] is True
+    assert go["ruler"]["verbatim_misses"] == []
     assert harness.baselines["ruler_miss_rate"] == locked_before
 
 

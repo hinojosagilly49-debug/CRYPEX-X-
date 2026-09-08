@@ -66,6 +66,9 @@ class Phase3Ruler64kProtocolRunner:
         total = len(PHASE3_RULER_MARKERS)
         miss_rate = misses / total
         passed_gate = miss_rate < 0.001
+        verbatim_misses = [
+            sample.marker for sample in samples if not sample.exact_match
+        ]
         payload = {
             "phase": 3,
             "status": "GO" if passed_gate else "NO-GO",
@@ -84,6 +87,7 @@ class Phase3Ruler64kProtocolRunner:
                 "formula": "miss_rate_fraction = misses / n",
                 "passed_gate": passed_gate,
                 "samples": [asdict(sample) for sample in samples],
+                "verbatim_misses": verbatim_misses if not passed_gate else [],
             },
             "phase1_locked_ruler_miss_rate_fraction": locked_ruler_before,
             "baseline_unchanged": self.harness.baselines["ruler_miss_rate"]

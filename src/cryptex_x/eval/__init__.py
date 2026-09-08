@@ -1,4 +1,5 @@
 from .mrcr_v2 import MRCR_V2_SAMPLES, Phase3MrcrV2Runner
+from .moe_phase4 import GSM8K_V2_SAMPLES, Phase4MoEGateRunner
 from .ruler64k import (
     PHASE3_RULER_MARKERS,
     Phase3Ruler64kProtocolRunner,
@@ -6,7 +7,9 @@ from .ruler64k import (
 )
 
 __all__ = [
+    "GSM8K_V2_SAMPLES",
     "MRCR_V2_SAMPLES",
+    "Phase4MoEGateRunner",
     "Phase3MrcrV2Runner",
     "PHASE3_RULER_MARKERS",
     "Phase3Ruler64kProtocolRunner",
