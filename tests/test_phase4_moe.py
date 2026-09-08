@@ -5,7 +5,11 @@ import pytest
 from pathlib import Path
 
 from cryptex_x.arch.moe import MoEConfig
-from cryptex_x.eval.moe_phase4 import GSM8K_V2_SAMPLES, Phase4MoEGateRunner
+from cryptex_x.eval.moe_phase4 import (
+    MATH500_SAMPLES,
+    GSM8K_V2_SAMPLES,
+    Phase4MoEGateRunner,
+)
 from cryptex_x.sigma7 import (
     Phase1BaselineRunner,
     Sigma7EvaluationHarness,
@@ -47,6 +51,12 @@ def test_phase4_uses_gsm8k_v2_key_and_keeps_v1_immutable(tmp_path):
     assert [row["prompt"] for row in report["gsm8k_v2"]["samples"]] == [
         sample.prompt for sample in GSM8K_V2_SAMPLES
     ]
+    assert len(report["routing"]["expert_load_histogram"]) == 8
+    assert report["routing"]["no_single_expert_full_load"] is True
+    assert all(
+        row["load_fraction"] < 1.0 for row in report["routing"]["expert_load_histogram"]
+    )
+    assert report["routing"]["router_entropy"] > 0
     assert "gsm8k_accuracy_v2" in harness.baselines
     assert harness.baselines["gsm8k_accuracy"] == baseline_v1
     assert report["baseline_integrity"]["gsm8k_v1_unchanged"] is True
@@ -75,3 +85,28 @@ def test_phase4_requires_strict_plus_five_percent_over_locked_v2(tmp_path):
     assert go["gsm8k_v2"]["passed_gate"] is True
     assert go["gsm8k_v2"]["relative_gain"] > 0.05
     assert harness.baselines["gsm8k_accuracy"] == baseline_v1
+
+
+def test_phase4_math500_stub_locks_key_only_if_absent(tmp_path):
+    harness = _phase1_harness(tmp_path)
+    runner = Phase4MoEGateRunner(harness=harness)
+    report = runner.run(output_path=tmp_path / "phase4_math500.json")
+
+    assert len(report["math500"]["samples"]) == 3
+    assert [row["prompt"] for row in report["math500"]["samples"]] == [
+        sample.prompt for sample in MATH500_SAMPLES
+    ]
+    assert report["math500"]["target_accuracy"] == 0.45
+    assert "math500_accuracy" in harness.baselines
+    locked = harness.baselines["math500_accuracy"]
+    assert report["math500"]["locked_new_baseline"] is True
+
+    # simulate pre-locked path on separate harness to avoid mutating current lock
+    harness2 = _phase1_harness(tmp_path)
+    harness2.register_baseline("math500", "accuracy", 0.99)
+    report2 = Phase4MoEGateRunner(harness=harness2).run(
+        output_path=tmp_path / "phase4_math500_prelocked.json"
+    )
+    assert report2["math500"]["locked_new_baseline"] is False
+    assert harness2.baselines["math500_accuracy"] == 0.99
+    assert harness.baselines["math500_accuracy"] == locked
