@@ -43,6 +43,7 @@ class Sigma7EvaluationHarness:
     def __init__(self) -> None:
         self.baselines: dict[str, float] = {}
         self.current_phase = 0
+        self._phase1_efficiency_proxy_registered = False
         logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
     def register_baseline(self, task: str, metric_name: str, value: float) -> None:
@@ -86,6 +87,19 @@ class Sigma7EvaluationHarness:
                 return False
 
         logging.info("[GO] %s accepted.", phase_name)
+        return True
+
+    def register_phase1_efficiency_proxies(self) -> bool:
+        """Register baseline efficiency proxies once, without overwriting locked values."""
+        if self._phase1_efficiency_proxy_registered:
+            return False
+
+        if "inference_decode_tokens_per_sec" not in self.baselines:
+            self.register_baseline("inference", "decode_tokens_per_sec", 38.0)
+        if "inference_ttft_seconds" not in self.baselines:
+            self.register_baseline("inference", "ttft_seconds", 0.46)
+
+        self._phase1_efficiency_proxy_registered = True
         return True
 
 
