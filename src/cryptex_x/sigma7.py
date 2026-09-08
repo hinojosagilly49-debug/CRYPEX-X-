@@ -299,3 +299,39 @@ def default_phase1_spec() -> Phase1BaselineSpec:
             ),
         },
     )
+
+
+def phase1_seed_sweep(
+    *,
+    start_seed: int = 1,
+    end_seed: int = 16,
+    report_dir: str | Path = "/tmp",
+) -> dict[str, Any]:
+    results: list[dict[str, Any]] = []
+    spec = default_phase1_spec()
+    report_base = Path(report_dir)
+    report_base.mkdir(parents=True, exist_ok=True)
+    for seed in range(start_seed, end_seed + 1):
+        harness = Sigma7EvaluationHarness()
+        runner = Phase1BaselineRunner(spec=spec, harness=harness, seed=seed)
+        report = runner.run_and_lock(
+            report_path=report_base / f"phase1_seed_{seed}.json"
+        )
+        aggregates = {
+            item["name"]: item["aggregate_value"] for item in report["benchmarks"]
+        }
+        results.append(
+            {
+                "seed": seed,
+                "status": report["status"],
+                "phase1_go": report["phase1_go"],
+                "aggregates": aggregates,
+                "locked_baselines": report["locked_baselines"],
+            }
+        )
+
+    return {
+        "phase": 1,
+        "seed_range": [start_seed, end_seed],
+        "results": results,
+    }
