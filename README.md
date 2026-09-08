@@ -14,6 +14,28 @@ Master-record double-check verified:
 
 **Next focus:** 2026 GTM on one desk wedge; PQC as crypto-agility (not a blocker).
 
+## XTC🌐LIVE V13-RC2 (PRODUCTION CANDIDATE)
+
+Architectural remediation for dual-billing, PIRA VOD, and secure webhooks lives alongside the metals desk stack:
+
+| Path | Purpose |
+|------|---------|
+| [docs/xtc-live/V13-RC2-readiness.md](docs/xtc-live/V13-RC2-readiness.md) | Readiness matrix + unverified hardware/calendar blockers |
+| [supabase/migrations/](supabase/migrations/) | Transactional outbox + `webhook_events` base table publication |
+| [supabase/functions/XTC_LIVE_Secure_Webhook_Edge_Function.ts](supabase/functions/XTC_LIVE_Secure_Webhook_Edge_Function.ts) | HMAC-SHA256 + fallback secret + 300s replay window |
+| [src/xtc-live/](src/xtc-live/) | Node ports: webhook, PIRA (n=4, γ=0.3), billing seam |
+| [scripts/release.sh](scripts/release.sh) | Remote/local tag collision guard for immutable releases |
+| [tests/ci_webhook_tests.js](tests/ci_webhook_tests.js) | Webhook vectors T1–T10 |
+
+```bash
+npm install
+npm run build
+npm test
+./scripts/release.sh v13-rc2 --final-verified
+```
+
+Full production remains gated on the 14-day Play closed test and Azure Maia 200 soak (explicitly **unverified**).
+
 ## Pipeline
 
 `ingest → RAG context → LLM → PreFlect/SARC-DQ → action → learning`

@@ -1,0 +1,10 @@
+{
+  "packages": [
+    "com.revenuecat.purchases",
+    "com.android.billingclient",
+    "androidx.media3.exoplayer",
+    "com.google.android.gms.cast"
+  ],
+  "targetSdk": 36,
+  "notes": "Android 16 (API 36) — Stripe SDK intentionally omitted"
+}

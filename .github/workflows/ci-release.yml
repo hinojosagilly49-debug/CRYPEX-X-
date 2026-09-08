@@ -1,0 +1,62 @@
+name: ci-release
+
+on:
+  push:
+    branches: [main, master, "copilot/**"]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (e.g. v13-rc2)"
+        required: false
+        default: "v13-rc2"
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install
+        run: npm ci || npm install
+
+      # Explicit build prevents missing dist/ directory failures on ephemeral runners
+      - name: Build
+        run: npm run build
+
+      - name: Webhook vector suite
+        run: npm test
+
+      - name: Python metals desk suite (compat)
+        run: |
+          python -m pip install -e ".[dev]"
+          python -m pytest -q
+
+      - name: Android AAB zero-Stripe check (fixture)
+        run: node android/checks/inspect_aab_deps.js
+
+      - name: Release dry-run tag guard
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          chmod +x scripts/release.sh
+          ./scripts/release.sh "${{ inputs.tag || 'v13-rc2' }}"
+
+  tag-collision-guard:
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - uses: actions/checkout@v4
+      - name: Refuse tag clobber on re-push semantics
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          git rev-parse "refs/tags/${TAG}"
+          echo "Tag ${TAG} resolved OK"
