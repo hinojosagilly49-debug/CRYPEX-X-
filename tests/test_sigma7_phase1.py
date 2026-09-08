@@ -151,6 +151,7 @@ def test_phase1_runner_blocks_phase2_when_lock_fails(tmp_path: Path):
     assert report["phase1_go"] is False
     assert report["status"] == "NO-GO"
     assert "lock failed" in report["gate_reason"].lower()
+    assert harness.baselines == {"mmlu_accuracy": 0.99}
 
 
 def test_baselines_are_immutable_once_locked():
