@@ -49,9 +49,14 @@ def test_phase2_decode_gain_must_exceed_thirty_percent(tmp_path: Path):
     harness.register_baseline("inference", "decode_tokens_per_sec", 40.0)
     harness.register_baseline("inference", "ttft_seconds", 0.46)
     phase2 = Phase2AblationRunner(harness=harness)
+    mmlu_baseline = harness.baselines["mmlu_accuracy"]
 
     no_go = phase2.run(
-        metrics=Phase2SimulatedMetrics(decode_tokens_per_sec=52.0, ttft_seconds=0.45),
+        metrics=Phase2SimulatedMetrics(
+            decode_tokens_per_sec=48.0,
+            ttft_seconds=0.45,
+            mmlu_accuracy=mmlu_baseline * 0.995,
+        ),
         output_path=tmp_path / "phase2_nogo.json",
     )
     assert no_go["status"] == "NO-GO"
@@ -59,9 +64,9 @@ def test_phase2_decode_gain_must_exceed_thirty_percent(tmp_path: Path):
 
     go = phase2.run(
         metrics=Phase2SimulatedMetrics(
-            decode_tokens_per_sec=53.0,
+            decode_tokens_per_sec=54.0,
             ttft_seconds=0.45,
-            mmlu_accuracy=0.331,
+            mmlu_accuracy=mmlu_baseline * 0.995,
         ),
         output_path=tmp_path / "phase2_go.json",
     )
@@ -98,6 +103,29 @@ def test_phase2_sets_arc_pending_when_arc_baseline_missing(tmp_path: Path):
     assert report["intelligence"]["arc"]["arc_pending"] is True
     assert report["intelligence"]["arc"]["passed_gate"] is True
     assert len(report["intelligence"]["arc"]["stub_samples"]) == 3
+
+
+def test_phase2_kv_cache_ratio_gate_and_formula(tmp_path: Path):
+    harness = _harness_with_phase1_locked(tmp_path)
+    harness.register_baseline("inference", "decode_tokens_per_sec", 40.0)
+    harness.register_baseline("inference", "ttft_seconds", 0.46)
+    phase2 = Phase2AblationRunner(harness=harness)
+
+    report = phase2.run(
+        metrics=Phase2SimulatedMetrics(
+            decode_tokens_per_sec=54.0,
+            ttft_seconds=0.45,
+            hybrid_kv_cache_bytes=320_000_000.0,
+            dense_kv_cache_bytes=1_000_000_000.0,
+        ),
+        output_path=tmp_path / "phase2_kv_nogo.json",
+    )
+    assert report["status"] == "NO-GO"
+    assert report["kv_cache_vs_dense"]["formula"] == (
+        "kv_cache_vs_dense = hybrid_kv_cache_bytes / dense_kv_cache_bytes"
+    )
+    assert report["kv_cache_vs_dense"]["ratio"] == 0.32
+    assert report["kv_cache_vs_dense"]["passed_gate"] is False
 
 
 def test_phase2_checks_arc_drop_when_arc_baseline_is_locked(tmp_path: Path):

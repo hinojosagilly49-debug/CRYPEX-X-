@@ -46,6 +46,8 @@ class Phase2SimulatedMetrics:
     ttft_seconds: float = 0.44
     mmlu_accuracy: float = 0.331
     arc_stub_correct: tuple[bool, bool, bool] = (True, True, False)
+    dense_kv_cache_bytes: float = 1_000_000_000.0
+    hybrid_kv_cache_bytes: float = 280_000_000.0
 
 
 class Phase2AblationRunner:
@@ -100,8 +102,14 @@ class Phase2AblationRunner:
         arc_pending = arc_baseline is None
         arc_passed = True if arc_pending else arc_drop < 0.01
 
+        kv_cache_ratio = self._safe_ratio(
+            numerator=simulated.hybrid_kv_cache_bytes,
+            denominator=simulated.dense_kv_cache_bytes,
+        )
+        kv_cache_passed = kv_cache_ratio <= 0.30
+
         intelligence_gate_passed = mmlu_passed and arc_passed
-        phase2_go = decode_gate_passed and intelligence_gate_passed
+        phase2_go = decode_gate_passed and intelligence_gate_passed and kv_cache_passed
         payload = {
             "phase": 2,
             "status": "GO" if phase2_go else "NO-GO",
@@ -111,6 +119,7 @@ class Phase2AblationRunner:
                 mmlu_passed=mmlu_passed,
                 arc_passed=arc_passed,
                 arc_pending=arc_pending,
+                kv_cache_passed=kv_cache_passed,
             ),
             "hybrid_config": self.config.to_dict(),
             "efficiency_proxy_registered": proxy_registered,
@@ -124,6 +133,16 @@ class Phase2AblationRunner:
                 "baseline": ttft_baseline,
                 "new_value": simulated.ttft_seconds,
                 "relative_change": ttft_change,
+            },
+            "kv_cache_vs_dense": {
+                "metric_name": "kv_cache_vs_dense",
+                "lower_is_better": True,
+                "formula": "kv_cache_vs_dense = hybrid_kv_cache_bytes / dense_kv_cache_bytes",
+                "dense_kv_cache_bytes": simulated.dense_kv_cache_bytes,
+                "hybrid_kv_cache_bytes": simulated.hybrid_kv_cache_bytes,
+                "ratio": kv_cache_ratio,
+                "target_max": 0.30,
+                "passed_gate": kv_cache_passed,
             },
             "intelligence": {
                 "degradation_limit": 0.01,
@@ -158,12 +177,19 @@ class Phase2AblationRunner:
         return max(0.0, (baseline - new_value) / baseline)
 
     @staticmethod
+    def _safe_ratio(*, numerator: float, denominator: float) -> float:
+        if denominator <= 0:
+            return float("inf")
+        return numerator / denominator
+
+    @staticmethod
     def _gate_reason(
         *,
         decode_gate_passed: bool,
         mmlu_passed: bool,
         arc_passed: bool,
         arc_pending: bool,
+        kv_cache_passed: bool,
     ) -> str:
         reasons: list[str] = []
         if not decode_gate_passed:
@@ -172,8 +198,10 @@ class Phase2AblationRunner:
             reasons.append("MMLU drop must be <1% vs baseline.")
         if not arc_passed:
             reasons.append("ARC drop must be <1% vs baseline.")
+        if not kv_cache_passed:
+            reasons.append("kv_cache_vs_dense must be <= 0.30.")
         if reasons:
             return " ".join(reasons)
         if arc_pending:
-            return "Decode and MMLU gates passed; ARC baseline pending."
-        return "Decode and intelligence drop gates passed."
+            return "Decode and KV-cache gates passed; MMLU passed; ARC baseline pending."
+        return "Decode, KV-cache, and intelligence drop gates passed."
