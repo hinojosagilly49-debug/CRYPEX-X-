@@ -94,6 +94,7 @@ class Phase3Ruler64kProtocolRunner:
                 else "RULER miss rate must be < 0.001 (fraction)."
             ),
         }
+        self.harness.current_phase = max(self.harness.current_phase, 3)
         self._write(output_path, payload)
         return payload
 

@@ -13,10 +13,13 @@ class HybridConfig:
     attn_every: int = 8
     ssm: str = "mamba2"
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self, *, phase3_ran: bool = False) -> dict[str, Any]:
         payload = asdict(self)
         payload["global_attention_ratio"] = f"1/{self.attn_every}"
         payload["global_attention_fraction"] = 1 / self.attn_every
+        payload["phase3_context_validated"] = phase3_ran
+        payload["advertised_context_length"] = 64000 if phase3_ran else 8192
+        payload["advertised_context_length_unit"] = "tokens"
         return payload
 
 
@@ -26,7 +29,7 @@ def serialize_phase2_hybrid_config(
     output_path: str | Path = "artifacts/phase2_hybrid_config.json",
 ) -> dict[str, Any]:
     cfg = config or HybridConfig()
-    payload = {"phase": 2, "hybrid_config": cfg.to_dict()}
+    payload = {"phase": 2, "hybrid_config": cfg.to_dict(phase3_ran=False)}
     path = Path(output_path)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
@@ -121,7 +124,9 @@ class Phase2AblationRunner:
                 arc_pending=arc_pending,
                 kv_cache_passed=kv_cache_passed,
             ),
-            "hybrid_config": self.config.to_dict(),
+            "hybrid_config": self.config.to_dict(
+                phase3_ran=self.harness.current_phase >= 3
+            ),
             "efficiency_proxy_registered": proxy_registered,
             "decode": {
                 "baseline": decode_baseline,
